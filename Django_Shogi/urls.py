@@ -16,7 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from Shogi.views import reset_session, game_board
 
 urlpatterns = [
+    path('reset/', reset_session, name='reset_session'),
+    path('game/', game_board, name='game_board'),
     path('admin/', admin.site.urls),
 ]

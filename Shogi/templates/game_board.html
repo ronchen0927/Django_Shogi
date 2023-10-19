@@ -1,0 +1,9 @@
+<h1>將棋遊戲</h1>
+<pre>
+{{ board }}
+</pre>
+<form method="post">
+    {% csrf_token %}
+    <input type="text" name="move" placeholder="輸入你的棋步">
+    <input type="submit" value="提交">
+</form>
