@@ -38,7 +38,10 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('reset/', views.reset_session, name='reset_session'),
     path('game/', views.game_board, name='game_board'),
-    path('api/rules/', views.RuleAPIView.as_view(), name='api_rules'),
+    path('api/rules/', views.RuleAPIView.as_view(), name='api-rules'),
+    path('api/register/', views.RegisterView.as_view(), name='api-register'),
+    path('api/login/', views.LoginView.as_view(), name='api-login'),
+    path('api/logout/', views.LogoutView.as_view(), name='api-logout'),
 ]
 
 

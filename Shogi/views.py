@@ -3,8 +3,15 @@ import base64
 
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
-from rest_framework.response import Response
+from django.contrib.auth import authenticate, login, logout
+
+from rest_framework import status
 from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from .serializers import RegisterSerializer, LoginSerializer
+
 from .game import ShogiGame
 from .models import Player
 from .models import Game
@@ -74,3 +81,39 @@ class RuleAPIView(APIView):
             'description': self.DESCRIPTION
         }
         return Response(rules)
+    
+
+class RegisterView(APIView):
+    def post(self, request):
+        serializer = RegisterSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"detail": "Registeration successful!"}, status=status.HTTP_201_CREATED)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+class LoginView(APIView):
+    def post(self, request):
+        serializer = LoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        user = authenticate(
+            username = serializer.validated_data['username'],
+            password = serializer.validated_data['password']
+        )
+
+        if user:
+            login(request, user)
+            return Response({"datail": "Login successful!"}, status=status.HTTP_200_OK)
+        
+        return Response({"datail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
+    
+
+class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        logout(request)
+        return Response({"detail": "Logged out successfully!"})
