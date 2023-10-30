@@ -26,13 +26,22 @@ class ShogiBoard:
     KINGHT_LANCE_PIECE_NAME = ['n', 'l', 'N', 'L']
 
 
-    def __init__(self, player1: ShogiPlayer, player2: ShogiPlayer) -> None:
+    def __init__(self, our_player: ShogiPlayer, opponent_player: ShogiPlayer) -> None:
         self.board = [[None for _ in range(9)] for _ in range(9)]
-        self.our_player = player1
-        self.opponent_player = player2
+        self._our_player = our_player
+        self._opponent_player = opponent_player
         self.our_king_pos = (8, 4)
         self.opponent_king_pos = (0, 4)
         self.init_board()
+
+    
+    @property
+    def opponent_player(self):
+        return self._opponent_player
+    
+    @opponent_player.setter
+    def opponent_player(self, opponent_player):
+        self._opponent_player = opponent_player
 
 
     def __repr__(self) -> str:
@@ -55,8 +64,8 @@ class ShogiBoard:
 
         str_board += "    " + "  ".join([chr(idx + 97) for idx in range(9)]) + "\n"
         str_board += "\n"
-        str_board += f"Our Captures: {' '.join(self.our_player.captured)}\n"
-        str_board += f"Opponent Captures: {' '.join(self.opponent_player.captured)}\n"
+        str_board += f"Our Captures: {' '.join(self._our_player.captured)}\n"
+        str_board += f"Opponent Captures: {' '.join(self._opponent_player.captured)}\n"
 
         return str_board
 
@@ -185,7 +194,7 @@ class ShogiBoard:
             
             # 4. 打步詰規則
             if player.team == 1:
-                obj_piece = self.PIECES[piece_name](piece_name.lower(), 1)
+                obj_piece = self.PIECES[piece_name.upper()](piece_name.lower(), 1)
             else:
                 obj_piece = self.PIECES[piece_name.upper()](piece_name.upper(), -1)
 

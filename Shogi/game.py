@@ -1,9 +1,9 @@
-from Shogi.player import ShogiPlayer
-from Shogi.board import ShogiBoard
+from .player import ShogiPlayer
+from .board import ShogiBoard
 
 class ShogiGame:
-    def __init__(self) -> None:
-        self.players = [ShogiPlayer("Gojo Satoru", 1), ShogiPlayer("Geto Suguru", -1)]
+    def __init__(self, our_player: ShogiPlayer, opponent_player: ShogiPlayer=None) -> None:
+        self.players = [our_player, opponent_player]
         self.board = ShogiBoard(self.players[0], self.players[1])
         self.current_player = self.players[0]
         self.game_round = 0
