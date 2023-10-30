@@ -40,8 +40,20 @@ INSTALLED_APPS = [
     'channels',
     'rest_framework',
     'drf_yasg',
-    'Shogi'
+    'Shogi',
 ]
+
+# 設定ASGI應用
+# ASGI_APPLICATION = 'Django_Shogi.routing.application'
+
+# CHANNEL_LAYERS = {
+#     'default': {
+#         'BACKEND': 'channels_redis.core.RedisChannelLayer',
+#         'CONFIG': {
+#             "hosts": [('127.0.0.1', 6379)],
+#         },
+#     },
+# }
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -131,16 +143,6 @@ STATICFILES_DIRS = [
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# # 使用 channels layers 作為預設的 backend
-# CHANNEL_LAYERS = {
-#     'default': {
-#         'BACKEND': 'channels.layers.InMemoryChannelLayer',
-#     },
-# }
-
-# # 使用 channels 路由替代原有的 Django 路由
-# ASGI_APPLICATION = 'Django_Shogi.routing.application'
 
 # DRF Authentication
 REST_FRAMEWORK = {
