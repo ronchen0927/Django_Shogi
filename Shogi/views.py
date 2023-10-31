@@ -11,7 +11,7 @@ from rest_framework import views, status, permissions, exceptions, generics
 from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from .serializers import RegisterSerializer, LoginSerializer, PlayerSerializer, GameSerializer, GameJoinSerializer, GameMovesSerializer
+from .serializers import RegisterSerializer, LoginSerializer, PlayerSerializer, GameSerializer, GameJoinSerializer, GameMoveSerializer, GameMovesSerializer
 
 from .game import ShogiGame
 from .player import ShogiPlayer
@@ -238,11 +238,11 @@ class GameJoinView(generics.UpdateAPIView):
         try:
             game = Game.objects.get(uid=game_uid)
         except Game.DoesNotExist:
-            return Response({'detail': 'Game not found.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'detail': 'Game is not found.'}, status=status.HTTP_404_NOT_FOUND)
 
         # 檢查遊戲是否已有對手
         if game.opponent_player:
-            return Response({'detail': 'Game already has an opponent.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'Game has already an opponent.'}, status=status.HTTP_400_BAD_REQUEST)
         
         player, _ = Player.objects.get_or_create(user=request.user)
 
@@ -258,6 +258,8 @@ class GameJoinView(generics.UpdateAPIView):
         shogi_game.players[OPPONENT_PLAYER] = opponent_player
         shogi_game.board.opponent_player = opponent_player
 
+        print(shogi_game.board)
+
         shogi_board_data = {
             "our_player": shogi_game.players[OUR_PLAYER].name,
             "opponent_player": shogi_game.players[OPPONENT_PLAYER].name,
@@ -272,7 +274,7 @@ class GameJoinView(generics.UpdateAPIView):
 
 class GameMoveView(generics.UpdateAPIView):
     queryset = Game.objects.all()
-    serializer_class = GameSerializer
+    serializer_class = GameMoveSerializer
     lookup_field = 'uid'
 
     def update(self, request, *args, **kwargs):

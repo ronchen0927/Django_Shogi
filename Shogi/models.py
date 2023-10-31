@@ -1,5 +1,6 @@
 import uuid
 from django.db import models
+from django.db.models import F
 from django.contrib.auth.models import User
 
 class Player(models.Model):
@@ -25,7 +26,7 @@ class Game(models.Model):
     binary_game = models.BinaryField(default=b"")
     timestamp = models.DateTimeField(auto_now_add=True)
 
-    def end_game(self, winner):
+    def end_game(self, winner: Player):
         # 檢查遊戲是否已有結果
         if self.status == GameStatus.FINISHED:
             raise ValueError("This game has already finished. Cannot set the result again.")
@@ -36,5 +37,11 @@ class Game(models.Model):
             self.loser = self.opponent_player
         else:
             self.loser = self.our_player
+
+        # 紀錄勝者與敗者玩家的紀錄，利用 Djagno model 的 F 來做原子操作
+        self.winner.wins = F('wins') + 1
+        self.winner.save()        
+        self.loser.losses = F('losses') + 1
+        self.loser.save()
 
         self.save()

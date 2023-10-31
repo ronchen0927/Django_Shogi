@@ -11,9 +11,6 @@ class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['username', 'email', 'password', 'password2']
-        extra_kwargs = {
-            'password': {'write_only': True, 'style': {'input_type': 'password'}},
-        }
     
     def save(self):
         user = User(
@@ -36,7 +33,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
-    password = serializers.CharField(write_only=True)
+    password = serializers.CharField()
 
 
 class PlayerSerializer(serializers.ModelSerializer):
@@ -53,9 +50,20 @@ class GameSerializer(serializers.ModelSerializer):
 
 
 class GameJoinSerializer(serializers.ModelSerializer):
+    uid = serializers.UUIDField()
+
     class Meta:
         model = Game
-        fields = []
+        fields = ['uid']
+
+
+class GameMoveSerializer(serializers.ModelSerializer):
+    uid = serializers.UUIDField()
+    move = serializers.CharField()
+
+    class Meta:
+        model = Game
+        fields = ['uid', 'move']
 
 
 class GameMovesSerializer(serializers.ModelSerializer):
