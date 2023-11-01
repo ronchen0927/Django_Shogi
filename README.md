@@ -36,7 +36,9 @@ python manage.py migrate
 python manage.py runserver
 ```
 ## How to Play
+You need two players to start the game
 <strong>Temporarily using both swagger and postman to make API calls for playing chess</strong>
+
 http://127.0.0.1:8000/swagger/
 
 ### Move
