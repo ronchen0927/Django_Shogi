@@ -1,8 +1,8 @@
 # Shogi
-
 ## Introduction
 [Game rules](https://zh.wikipedia.org/zh-tw/%E6%97%A5%E6%9C%AC%E5%B0%86%E6%A3%8B)
 ---
+
 Init board
 ```
 9 | L| N| S| G| K| G| S| N| L|
@@ -20,33 +20,38 @@ Our Captures:
 Opponent Captures:
 ```
 ## Usage
-
+#### Install requirement
 ```bash
 pip install -r requirements.txt
-python manage.py runserver
 ```
 
+#### Make migrations to the model
+```bash
+python manage.py makemigrations
+python manage.py migrate
+```
+
+#### Runserver
+```bash
+python manage.py runserver
+```
 ## How to Play
-
-### Temporarily called API to play the game
-
-Temporarily using both swagger and postman to make API calls for playing chess
+<strong>Temporarily using both swagger and postman to make API calls for playing chess</strong>
 http://127.0.0.1:8000/swagger/
 
-#### Move
-
+### Move
 Move piece a3 to a4
 ```
 a3a4
 ```
 
-#### Promotion move
+### Promotion move
 Move piece h6 to h7 and promote
 ```
 h6h7+
 ```
 
-#### Drop
+### Drop
 Drop "Pawn" to d4
 ```
 P*d4
