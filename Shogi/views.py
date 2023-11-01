@@ -89,8 +89,7 @@ class RuleAPIView(views.APIView):
     
 
 class RegisterView(views.APIView):
-    @swagger_auto_schema(
-        operation_summary='Register API',       
+    @swagger_auto_schema(      
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
@@ -125,8 +124,7 @@ class RegisterView(views.APIView):
     
 
 class LoginView(views.APIView):
-    @swagger_auto_schema(
-        operation_summary='Login',       
+    @swagger_auto_schema( 
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
