@@ -1,11 +1,12 @@
 import pickle
 import base64
 
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, redirect
 from django.http import HttpResponse
-from django.contrib.auth import authenticate, login, logout
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
+from django.contrib import auth
+
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 
 from rest_framework import views, status, permissions, exceptions, generics
 from rest_framework.response import Response
@@ -21,6 +22,59 @@ from .models import Player, Game, GameStatus
 
 OUR_PLAYER = 0
 OPPONENT_PLAYER = 1
+
+
+def index(request):
+    return render(request, "index.html")
+
+
+def login(request):
+    if request.method == 'POST':
+        username = request.POST['username']
+        password = request.POST['password']
+        user = auth.authenticate(request, username=username, password=password)
+
+        if user:
+            auth.login(request, user)
+            return redirect('/index/')
+        else:
+            message = "Login failed!"
+
+    return render(request, "login.html", locals())
+
+
+def logout(request):
+    auth.logout(request)
+    return redirect("/index/")
+
+
+def game_socket(request, uid):
+    if not uid:
+        return HttpResponse({'detail': 'Game ID is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # 根據 game_uid 獲取遊戲實例
+    try:
+        game = Game.objects.get(uid=uid)
+    except Game.DoesNotExist:
+        return HttpResponse('Game not found.', status=status.HTTP_404_NOT_FOUND)
+    
+    if game.status == GameStatus.FINISHED:
+        return HttpResponse('The game is over.', status=status.HTTP_400_BAD_REQUEST)
+    
+    shogi_game = pickle.loads(game.binary_game)
+    shogi_game.current_player = shogi_game.players[shogi_game.game_round % 2]
+
+    # 檢查玩家是否是遊戲的一部分
+    # TODO: 是否點選後直接加入新玩家
+    try:
+        shogi_players_name = [player.name for player in shogi_game.players]
+    except:
+        return HttpResponse('此遊戲尚未加入另一名玩家', status=status.HTTP_400_BAD_REQUEST)
+    
+    if request.user.username not in shogi_players_name:
+        return HttpResponse('Not a part of this game.', status=status.HTTP_403_FORBIDDEN)
+        
+    return render(request, "game_socket.html", {"game_uid": uid, "board": shogi_game.board})
 
 
 def reset_session(request):
@@ -144,14 +198,14 @@ class LoginView(views.APIView):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
-        user = authenticate(
+        user = auth.authenticate(
             request,
             username=serializer.validated_data['username'],
             password=serializer.validated_data['password']
         )
 
         if user:
-            login(request, user)
+            auth.login(request, user)
             return Response({"datail": "Login successful!"}, status=status.HTTP_200_OK)
         
         return Response({"datail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
@@ -161,7 +215,7 @@ class LogoutView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
     
     def get(self, request):
-        logout(request)
+        auth.logout(request)
         return Response({"detail": "Logged out successfully!"})
     
 
@@ -190,18 +244,22 @@ class GameCreateView(generics.CreateAPIView):
     queryset = Game.objects.all()
     serializer_class = GameSerializer
 
-    def perform_create(self, serializer):
-        # 設定 our_player
-        player, _ = Player.objects.get_or_create(user=self.request.user)
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        player, _ = Player.objects.get_or_create(user=request.user)
 
         our_player = ShogiPlayer(player.user.username, 1)
         shogi_game = ShogiGame(our_player)
         
-        serializer.validated_data['our_player'] = player
-        serializer.validated_data['binary_game'] = pickle.dumps(shogi_game)
+        # 保存遊戲模型的實例到資料庫
+        game = serializer.save(our_player=player, binary_game=pickle.dumps(shogi_game))
 
-        # 最後保存遊戲到數據庫
-        serializer.save()
+        # 返回遊戲 uid
+        headers = self.get_success_headers(serializer.data)
+        return Response({'uid': game.uid}, status=status.HTTP_201_CREATED, headers=headers)
+
 
 class GameDetailDeleteView(generics.RetrieveDestroyAPIView):
     queryset = Game.objects.all()
@@ -261,7 +319,7 @@ class GameJoinView(generics.UpdateAPIView):
         shogi_board_data = {
             "our_player": shogi_game.players[OUR_PLAYER].name,
             "opponent_player": shogi_game.players[OPPONENT_PLAYER].name,
-            "Current board": str(shogi_game.board)
+            "board": str(shogi_game.board)
         }
 
         game.binary_game = pickle.dumps(shogi_game)
@@ -291,15 +349,12 @@ class GameMoveView(generics.UpdateAPIView):
             return Response({'detail': 'The game is over.'}, status=status.HTTP_400_BAD_REQUEST)
         
         shogi_game = pickle.loads(game.binary_game)
-
         shogi_game.current_player = shogi_game.players[shogi_game.game_round % 2]
 
         # 檢查玩家是否是遊戲的一部分
         shogi_players_name = [player.name for player in shogi_game.players]
         if request.user.username not in shogi_players_name:
             return Response({'detail': 'Not a part of this game.'}, status=status.HTTP_403_FORBIDDEN)
-        
-        # TODO: 檢查是否是該玩家的回合（之後會用 WebSocket，主要是先能自我對弈）
 
         # 執行棋步，並更新遊戲狀態，如果例外會回傳 400
         try:
@@ -324,13 +379,34 @@ class GameMoveView(generics.UpdateAPIView):
             return Response({'detail': 'Game over'}, status=status.HTTP_200_OK)
         
         shogi_board_data = {
-            "Next_game_round": shogi_game.game_round + 1,
-            "Next_player": shogi_game.current_player.name,
-            "Current board": str(shogi_game.board)
+            'game_id': str(game.uid),
+            'move': move,
+            "current_round": shogi_game.game_round,
+            "current_player": shogi_game.current_player.name,
+            "board": str(shogi_game.board)
         }
         
         # 如果棋步是合法的，保存遊戲的變動
         game.binary_game = pickle.dumps(shogi_game)
         game.save()
+
+        # 一旦遊戲狀態更新，就發送一個 WebSocket 消息
+        channel_layer = get_channel_layer()
+        group_name = f'game_{game.uid}'  # 確保這與你的 routing 名稱相符
+
+        # 轉換同步代碼以進行異步通道層調用
+        async_to_sync(channel_layer.group_send)(
+            group_name,
+            {
+                'type': 'game_update',  # 對應於消費者中的方法名稱
+                'message': {
+                    'game_id': str(game.uid),
+                    'move': move,
+                    'current_round': shogi_game.game_round,
+                    'current_player': shogi_game.current_player.name,
+                    'board': str(shogi_game.board)
+                }
+            }
+        )
 
         return Response(shogi_board_data, status=status.HTTP_200_OK)

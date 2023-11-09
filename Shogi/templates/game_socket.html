@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>Shogi Game</title>
+</head>
+<body>
+    <pre id="game-message-board">{{ board }}</pre>
+    {{ game_uid|json_script:"game-uid" }}
+    <script>
+        const gameUID = JSON.parse(document.getElementById('game-uid').textContent);
+
+        const gameSocket = new WebSocket(
+            'ws://'
+            + window.location.host
+            + '/ws/game/'
+            + gameUID
+            + '/'
+        );
+
+        gameSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            document.querySelector('#game-message-board').textContent = data.message.board;
+        };
+
+        gameSocket.onclose = function(e) {
+            console.error('Chat socket closed unexpectedly');
+        };
+    </script>
+</body>
+</html>

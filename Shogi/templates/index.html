@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>遊戲首頁</title>
+</head>
+<body>
+    {% if user.is_authenticated %}
+        Hello 玩家: {{user.username}}
+        <br>
+        <br>
+        <input id="game-uid-create" type="button" value="Create game">
+        <input id="join-game-button" type="button" value="List all game">
+        <a href="/logout/">Logout</a>
+        <br>
+        <br>
+    {% else %}
+        <p> You aren't login the game </p>
+        <a href="/login/">Login</a>
+    {% endif %}
+
+    <div id="create-game-success">
+        <!-- 建立遊戲訊息 -->
+    </div> 
+
+    <div id="game-list">
+        <!-- 遊戲列表 -->
+    </div>    
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        let csrftoken = '{{ csrf_token }}';
+
+        function createGame() {
+            // 創建一個新的遊戲實例
+            $.ajax({
+                url: '/api/game/',
+                type: 'POST',
+                data: {},
+                headers: {
+                    'X-CSRFToken': csrftoken
+                },
+                success: function(data) {
+                    // 清空 text 以及 list（如果有）
+                    $('#create-game-success').empty();
+                    $('#game-list').empty();
+
+                    console.log('遊戲創建成功，遊戲ID：' + data.uid);
+                    let text = '遊戲創建成功，遊戲ID：' + data.uid;
+                    $('#create-game-success').append(text);
+                },
+                error: function(error) {
+                    console.error('創建遊戲過程中出現錯誤：', error);
+                }
+            });
+        }
+
+        function listGame() {
+            // 列出所有遊戲
+            $.ajax({
+                url: '/api/games/',  // '/api/games/' 是列出所有遊戲的 API 端點
+                type: 'GET',
+                data: {},
+                headers: {
+                    'X-CSRFToken': csrftoken  // Django CSRF token
+                },
+                success: function(data) {
+                    // 清空 text 以及 list（如果有）
+                    $('#create-game-success').empty();
+                    $('#game-list').empty();
+
+                    // 假設後端返回的數據格式是一個遊戲對象的列表
+                    data.forEach(function(game) {
+                        // 創建一個超連結元素，並設置其 href 屬性
+                        let link = $('<a>')
+                            .attr('href', '/game/' + game.uid + '/')
+                            .text('Game ID: ' + game.uid);
+
+                        // 將超連結包裝在列表項中
+                        let listItem = $('<li>').append(link);
+
+                        // 將列表項添加到遊戲列表中
+                        $('#game-list').append(listItem);
+                    });
+                },
+                error: function(error) {
+                    console.error('列出遊戲過程中出現錯誤：', error);
+                }
+            });
+        }
+
+        document.querySelector('#game-uid-create').onclick = createGame;
+        document.querySelector('#join-game-button').onclick = listGame;
+
+        $(document).ready(function() {
+            // 加載完畢時，立即列出所有遊戲
+            listGame();
+        });
+    </script>
+</body>
+</html>
