@@ -41,7 +41,7 @@ class ShogiPiece:
 
                     # 加上能升變的 move
                     if not board[src_r][src_c].promoted:
-                        if (self.team != opponent_team and dst_r in self.OUR_PROMOTION_ZONE) or (self.team == opponent_team and dst_r in self.OPPONENT_PROMOTION_ZONE):
+                        if (self.team == 1 and dst_r in self.OUR_PROMOTION_ZONE) or (self.team == -1 and dst_r in self.OPPONENT_PROMOTION_ZONE):
                             move_notation += '+'
                             possible_moves.append(move_notation)
         
@@ -64,7 +64,7 @@ class ShogiPiece:
 
                     # 加上能升變的 move
                     if not board[src_r][src_c].promoted:
-                        if (self.team != opponent_team and dst_r in self.OUR_PROMOTION_ZONE) or (self.team == opponent_team and dst_r in self.OPPONENT_PROMOTION_ZONE):
+                        if (self.team == 1 and dst_r in self.OUR_PROMOTION_ZONE) or (self.team == -1 and dst_r in self.OPPONENT_PROMOTION_ZONE):
                             move_notation += '+'
                             possible_moves.append(move_notation)
                 else:
@@ -83,7 +83,7 @@ class King(ShogiPiece):
     [D, S, D],
     [D, D, D]
     '''
-    _king_pattern = [(-1, -1), (-1, 0), (-1, -1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
+    _king_pattern = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
     
     def get_valid_moves(self, position: Tuple[int, int], board: List[List[int]]) -> List[str]:
         moves = self.pattern_check(self._king_pattern, position, board)
