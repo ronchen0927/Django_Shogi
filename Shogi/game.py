@@ -38,6 +38,7 @@ class ShogiGame:
     def play(self):
         while True:
             self.current_player = self.players[self.game_round % 2]
+            self.next_player = self.players[1 - self.game_round % 2]
 
             print(f"Round: {self.game_round + 1}\nCurrent Player : {self.current_player.name}\n")
             print(self.board)
@@ -46,7 +47,7 @@ class ShogiGame:
 
             try:
                 self.board.execute_move(input_move, self.current_player)
-                result = self.get_game_ended(self.players[0], self.players[1])
+                result = self.get_game_ended(self.current_player, self.next_player)
 
                 if result:
                     # Game over
@@ -55,9 +56,9 @@ class ShogiGame:
                     print(self.board)
 
                     if winner == 1:
-                        print(f"Winner is {self.players[0].name}")
+                        print(f"Winner is {self.current_player.name}")
                     else:
-                        print(f"Winner is {self.players[1].name}")
+                        print(f"Winner is {self.next_player.name}")
 
                     break
                 

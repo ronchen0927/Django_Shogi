@@ -95,18 +95,19 @@ def game_board(request):
 
         try:
             game.current_player = game.players[game.game_round % 2]
+            game.next_player = game.players[1 - game.game_round % 2]
 
             game.board.execute_move(move, game.current_player)
-            result = game.get_game_ended(game.players[0], game.players[1])
+            result = game.get_game_ended(game.current_player, game.next_player)
 
             if result:
                 # Game over
                 winner = result
 
                 if winner == 1:
-                    print(f"Winner is {game.players[0].name}")
+                    print(f"Winner is {game.current_player.name}")
                 else:
-                    print(f"Winner is {game.players[1].name}")
+                    print(f"Winner is {game.next_player.name}")
 
             game.game_round += 1
 
