@@ -19,9 +19,7 @@ from .player import ShogiPlayer
 
 from .models import Player, Game, GameStatus
 
-
-OUR_PLAYER = 0
-OPPONENT_PLAYER = 1
+OUR_PLAYER, OPPONENT_PLAYER = 0, 1
 
 
 def index(request):
@@ -50,13 +48,13 @@ def logout(request):
 
 def game_socket(request, uid):
     if not uid:
-        return HttpResponse({'detail': 'Game ID is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        return HttpResponse('Game ID is required.', status=status.HTTP_400_BAD_REQUEST)
     
     # 根據 game_uid 獲取遊戲實例
     try:
         game = Game.objects.get(uid=uid)
     except Game.DoesNotExist:
-        return HttpResponse('Game not found.', status=status.HTTP_404_NOT_FOUND)
+        return HttpResponse('The game is not found.', status=status.HTTP_404_NOT_FOUND)
     
     if game.status == GameStatus.FINISHED:
         return HttpResponse('The game is over.', status=status.HTTP_400_BAD_REQUEST)
@@ -65,16 +63,16 @@ def game_socket(request, uid):
     shogi_game.current_player = shogi_game.players[shogi_game.game_round % 2]
 
     # 檢查玩家是否是遊戲的一部分
-    # TODO: 是否點選後直接加入新玩家
+    # TODO: 點選「加入遊戲」後直接加入新玩家
     try:
         shogi_players_name = [player.name for player in shogi_game.players]
     except:
-        return HttpResponse('此遊戲尚未加入另一名玩家', status=status.HTTP_400_BAD_REQUEST)
+        return HttpResponse('This game has not yet been joined by another player.', status=status.HTTP_400_BAD_REQUEST)
     
     if request.user.username not in shogi_players_name:
-        return HttpResponse('Not a part of this game.', status=status.HTTP_403_FORBIDDEN)
+        return HttpResponse('You are not a player of this game', status=status.HTTP_403_FORBIDDEN)
         
-    return render(request, "game_socket.html", {"game_uid": uid, "board": shogi_game.board})
+    return render(request, 'game_socket.html', {'game_uid': uid, 'board': shogi_game.board})
 
 
 def reset_session(request):
@@ -350,11 +348,12 @@ class GameMoveView(generics.UpdateAPIView):
         
         shogi_game = pickle.loads(game.binary_game)
         shogi_game.current_player = shogi_game.players[shogi_game.game_round % 2]
+        shogi_game.next_player = shogi_game.players[1 - shogi_game.game_round % 2]
 
         # 檢查玩家是否是遊戲的一部分
         shogi_players_name = [player.name for player in shogi_game.players]
         if request.user.username not in shogi_players_name:
-            return Response({'detail': 'Not a part of this game.'}, status=status.HTTP_403_FORBIDDEN)
+            return Response({'detail': 'You are not a player of this game.'}, status=status.HTTP_403_FORBIDDEN)
 
         # 執行棋步，並更新遊戲狀態，如果例外會回傳 400
         try:
@@ -363,10 +362,11 @@ class GameMoveView(generics.UpdateAPIView):
             game.game_record += f"{move} "
             shogi_game.game_round += 1
         except Exception as e:
-            return Response({'detail': e}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': f'{e}'}, status=status.HTTP_400_BAD_REQUEST)
         
-        print(shogi_game.board)
-        
+        print(shogi_game.board)  # 在 CMD 查看走步後的棋盤
+
+        winner = 0  # 不會有玩家 id 為 0
         result = shogi_game.get_game_ended(shogi_game.players[OUR_PLAYER], shogi_game.players[OPPONENT_PLAYER])
         if result:
             if result == 1:
@@ -375,38 +375,34 @@ class GameMoveView(generics.UpdateAPIView):
                 winner = game.opponent_player
 
             game.end_game(winner)
-
-            return Response({'detail': 'Game over'}, status=status.HTTP_200_OK)
+        
+        # 保存遊戲的變動
+        game.binary_game = pickle.dumps(shogi_game)
+        game.save()
         
         shogi_board_data = {
             'game_id': str(game.uid),
             'move': move,
-            "current_round": shogi_game.game_round,
-            "current_player": shogi_game.current_player.name,
-            "board": str(shogi_game.board)
+            "next_round": shogi_game.game_round + 1,
+            "next_player": shogi_game.next_player.name,
+            "board": str(shogi_game.board),
+            "winner": "" if winner == 0 else shogi_players_name[OUR_PLAYER] if winner == 1 else shogi_players_name[OPPONENT_PLAYER]
         }
-        
-        # 如果棋步是合法的，保存遊戲的變動
-        game.binary_game = pickle.dumps(shogi_game)
-        game.save()
 
         # 一旦遊戲狀態更新，就發送一個 WebSocket 消息
         channel_layer = get_channel_layer()
-        group_name = f'game_{game.uid}'  # 確保這與你的 routing 名稱相符
+        group_name = f'game_{game.uid}'  # 需與你的 routing 名稱相符
 
         # 轉換同步代碼以進行異步通道層調用
         async_to_sync(channel_layer.group_send)(
             group_name,
             {
-                'type': 'game_update',  # 對應於消費者中的方法名稱
-                'message': {
-                    'game_id': str(game.uid),
-                    'move': move,
-                    'current_round': shogi_game.game_round,
-                    'current_player': shogi_game.current_player.name,
-                    'board': str(shogi_game.board)
-                }
+                'type': 'game_update',  # 對應於 consumers 中的方法名稱
+                'message': shogi_board_data
             }
         )
+
+        if winner:
+            return Response({'detail': 'Game over'}, status=status.HTTP_200_OK)
 
         return Response(shogi_board_data, status=status.HTTP_200_OK)

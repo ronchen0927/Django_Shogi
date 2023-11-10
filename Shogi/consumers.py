@@ -8,7 +8,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         self.game_uid = self.scope["url_route"]["kwargs"]["game_uid"]
         self.game_group_name = f"game_{self.game_uid}"
 
-        # Join room group
+        # Join game group
         await self.channel_layer.group_add(
             self.game_group_name,
             self.channel_name
@@ -17,7 +17,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         await self.accept()
 
     async def disconnect(self, close_code):
-        # Leave room group
+        # Leave game group
         await self.channel_layer.group_discard(
             self.game_group_name,
             self.channel_name
@@ -28,9 +28,9 @@ class GameConsumer(AsyncWebsocketConsumer):
         text_data_json = json.loads(text_data)
         message = text_data_json["message"]
 
-        # Send message to room group
+        # Send message to game group
         await self.channel_layer.group_send(
-            self.game_group_name, {"type": "game.message", "message": message}
+            self.game_group_name, {"type": "game_update", "message": message}
         )
 
     # Receive message from room group

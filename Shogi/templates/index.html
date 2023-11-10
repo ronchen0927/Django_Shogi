@@ -6,12 +6,11 @@
 </head>
 <body>
     {% if user.is_authenticated %}
-        Hello 玩家: {{user.username}}
-        <br>
-        <br>
-        <input id="game-uid-create" type="button" value="Create game">
-        <input id="join-game-button" type="button" value="List all game">
+        Hi 玩家: {{user.username}}&nbsp;&nbsp;
         <a href="/logout/">Logout</a>
+        <br>
+        <br>
+        <input id="game-uid-create" type="button" value="建立新遊戲">
         <br>
         <br>
     {% else %}
@@ -29,12 +28,12 @@
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-        let csrftoken = '{{ csrf_token }}';
+        const csrftoken = '{{ csrf_token }}';
 
         function createGame() {
             // 創建一個新的遊戲實例
             $.ajax({
-                url: '/api/game/',
+                url: '/api/game/',  // '/api/game/' 創建遊戲的 API 端點
                 type: 'POST',
                 data: {},
                 headers: {
@@ -45,12 +44,47 @@
                     $('#create-game-success').empty();
                     $('#game-list').empty();
 
-                    console.log('遊戲創建成功，遊戲ID：' + data.uid);
-                    let text = '遊戲創建成功，遊戲ID：' + data.uid;
+                    console.log('遊戲創建成功! ID: ' + data.uid);
+                    let text = '遊戲創建成功! ID: ' + data.uid;
                     $('#create-game-success').append(text);
                 },
                 error: function(error) {
-                    console.error('創建遊戲過程中出現錯誤：', error);
+                    // 檢查 responseJSON 是否存在
+                    if (error.responseJSON) {
+                        console.error('創建遊戲過程中出現錯誤: ', error.responseJSON);
+                        alert('創建遊戲過程中出現錯誤: ' + error.responseJSON.detail);
+                    } else {
+                        // 如果 responseJSON 不存在，使用 responseText
+                        console.error('創建遊戲過程中出現錯誤: ', error.responseText);
+                        alert('創建遊戲過程中出現錯誤: ' + error.responseText);
+                    }
+                }
+            });
+        }
+
+        function joinGame(e) {
+            $.ajax({
+                url: '/api/games/join/',  // '/api/games/join/' 加入遊戲的 API 端點
+                type: 'PUT',
+                data: {
+                    'uid': e.data.game_uid
+                },
+                headers: {
+                    'X-CSRFToken': csrftoken  // Django CSRF token
+                },
+                success: function(data) {
+                    window.location.href = '/game/' + e.data.game_uid + '/';
+                },
+                error: function(error) {
+                    // 檢查 responseJSON 是否存在
+                    if (error.responseJSON) {
+                        console.error('加入遊戲過程中出現錯誤: ', error.responseJSON);
+                        alert('加入遊戲過程中出現錯誤: ' + error.responseJSON.detail);
+                    } else {
+                        // 如果 responseJSON 不存在，使用 responseText
+                        console.error('加入遊戲過程中出現錯誤: ', error.responseText);
+                        alert('加入遊戲過程中出現錯誤: ' + error.responseText);
+                    }
                 }
             });
         }
@@ -58,7 +92,7 @@
         function listGame() {
             // 列出所有遊戲
             $.ajax({
-                url: '/api/games/',  // '/api/games/' 是列出所有遊戲的 API 端點
+                url: '/api/games/',  // '/api/games/' 列出所有遊戲的 API 端點
                 type: 'GET',
                 data: {},
                 headers: {
@@ -69,28 +103,35 @@
                     $('#create-game-success').empty();
                     $('#game-list').empty();
 
-                    // 假設後端返回的數據格式是一個遊戲對象的列表
                     data.forEach(function(game) {
-                        // 創建一個超連結元素，並設置其 href 屬性
-                        let link = $('<a>')
-                            .attr('href', '/game/' + game.uid + '/')
-                            .text('Game ID: ' + game.uid);
+                        let listItem = $('<li>').text('Game ID: ' + game.uid);  // 遊戲列表
+                        let space = $('<span>').html('&nbsp;&nbsp;&nbsp;');  // 創建兩個空白元素
+                        let joinGameButton = $('<button>').text('加入遊戲').on('click', {game_uid: game.uid}, joinGame);
+                        let continueGameButton = $('<button>').text('繼續遊戲').on('click', function() {
+                            window.location.href = '/game/' + game.uid + '/';
+                        })
 
-                        // 將超連結包裝在列表項中
-                        let listItem = $('<li>').append(link);
+                        listItem.append(space, joinGameButton, continueGameButton);
 
                         // 將列表項添加到遊戲列表中
                         $('#game-list').append(listItem);
                     });
                 },
                 error: function(error) {
-                    console.error('列出遊戲過程中出現錯誤：', error);
+                    // 檢查 responseJSON 是否存在
+                    if (error.responseJSON) {
+                        console.error('列出遊戲出現錯誤: ', error.responseJSON);
+                        alert('列出遊戲出現錯誤: ' + error.responseJSON.detail);
+                    } else {
+                        // 如果 responseJSON 不存在，使用 responseText
+                        console.error('列出遊戲出現錯誤: ', error.responseText);
+                        alert('列出遊戲出現錯誤: ' + error.responseText);
+                    }
                 }
             });
         }
 
         document.querySelector('#game-uid-create').onclick = createGame;
-        document.querySelector('#join-game-button').onclick = listGame;
 
         $(document).ready(function() {
             // 加載完畢時，立即列出所有遊戲

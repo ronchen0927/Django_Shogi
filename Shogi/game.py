@@ -5,7 +5,7 @@ class ShogiGame:
     def __init__(self, our_player: ShogiPlayer, opponent_player: ShogiPlayer=None) -> None:
         self.players = [our_player, opponent_player]
         self.board = ShogiBoard(self.players[0], self.players[1])
-        self.current_player = self.players[0]
+        self.current_player, self.next_player = self.players[0], self.players[1]
         self.game_round = 0
 
 

@@ -6,10 +6,20 @@
 </head>
 <body>
     <pre id="game-message-board">{{ board }}</pre>
+    <div id="game-round-move">
+        <!-- 顯示當前回合、當前玩家與該回合走步 -->
+    </div>
+    <br>
+    <input id="game-move-input" type="text" size="25"><br>
+    <input id="game-move-submit" type="button" value="發送走步">
+    <button onclick="history.go(-1)">回到遊戲首頁</button>
     {{ game_uid|json_script:"game-uid" }}
-    <script>
-        const gameUID = JSON.parse(document.getElementById('game-uid').textContent);
 
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        const csrftoken = '{{ csrf_token }}';
+        const gameUID = JSON.parse(document.getElementById('game-uid').textContent);
+        
         const gameSocket = new WebSocket(
             'ws://'
             + window.location.host
@@ -21,10 +31,61 @@
         gameSocket.onmessage = function(e) {
             const data = JSON.parse(e.data);
             document.querySelector('#game-message-board').textContent = data.message.board;
+
+            let nextRound = '下一回合: ' + data.message.next_round;
+            let nextPlayer = ' 輪到玩家: ' + data.message.next_player;
+            let move = ' 此回合走步為: ' + data.message.move;
+            let winner = '勝者為: ' + data.message.winner + '! 遊戲結束';
+
+            if (data.message.winner !== "") {
+                document.querySelector('#game-round-move').innerHTML = winner;
+            } 
+            else {
+                document.querySelector('#game-round-move').innerHTML = nextRound + nextPlayer + move;
+            }
         };
 
         gameSocket.onclose = function(e) {
             console.error('Chat socket closed unexpectedly');
+        };
+
+        document.querySelector('#game-move-input').focus();
+        document.querySelector('#game-move-input').onkeyup = function(e) {
+            if (e.key === 'Enter') {  // enter, return
+                document.querySelector('#game-move-submit').click();
+            }
+        };
+
+        document.querySelector('#game-move-submit').onclick = function(e) {
+            const moveInputDom = document.querySelector('#game-move-input');
+            const move = moveInputDom.value;
+
+            // 遊戲走步
+            $.ajax({
+                url: '/api/games/move/',  // '/api/games/move' 遊戲走步的 API 端點
+                type: 'PUT',
+                data: {
+                    'uid': gameUID,
+                    'move': move
+                },
+                headers: {
+                    'X-CSRFToken': csrftoken  // Django CSRF token
+                },
+                success: function(data) {},
+                error: function(error) {
+                    // 檢查 responseJSON 是否存在
+                    if (error.responseJSON) {
+                        console.error('遊戲移動過程中出現錯誤: ', error.responseJSON);
+                        alert('遊戲移動過程中出現錯誤: '+ error.responseJSON.detail);
+                    } else {
+                        // 如果 responseJSON 不存在，使用 responseText
+                        console.error('遊戲移動過程中出現錯誤: ', error.responseText);
+                        alert('遊戲移動過程中出現錯誤: '+ error.responseText);
+                    }
+                }
+            });
+
+            moveInputDom.value = '';
         };
     </script>
 </body>

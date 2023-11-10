@@ -66,6 +66,9 @@ class ShogiBoard:
         str_board += "\n"
         str_board += f"Our Captures: {' '.join(self._our_player.captured)}\n"
         str_board += f"Opponent Captures: {' '.join(self._opponent_player.captured)}\n"
+        str_board += "\n"
+        str_board += f"我方玩家: {self._our_player}\n"
+        str_board += f"敵方玩家: {self._opponent_player}\n"
 
         return str_board
 
