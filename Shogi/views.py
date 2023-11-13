@@ -239,6 +239,24 @@ class PlayerView(generics.RetrieveAPIView):
             raise exceptions.NotFound("Player does not found")
 
 
+class GameDetailDeleteView(generics.RetrieveDestroyAPIView):
+    queryset = Game.objects.all()
+    serializer_class = GameSerializer
+    lookup_field = 'uid'
+
+
+class GameListView(generics.ListAPIView):
+    queryset = Game.objects.all()
+    serializer_class = GameSerializer
+    lookup_field = 'uid'
+
+
+class GameMovesView(generics.RetrieveAPIView):
+    queryset = Game.objects.all()
+    serializer_class = GameMovesSerializer
+    lookup_field = 'uid'
+
+
 class GameCreateView(generics.CreateAPIView):
     queryset = Game.objects.all()
     serializer_class = GameSerializer
@@ -258,24 +276,6 @@ class GameCreateView(generics.CreateAPIView):
         # 返回遊戲 uid
         headers = self.get_success_headers(serializer.data)
         return Response({'uid': game.uid}, status=status.HTTP_201_CREATED, headers=headers)
-
-
-class GameDetailDeleteView(generics.RetrieveDestroyAPIView):
-    queryset = Game.objects.all()
-    serializer_class = GameSerializer
-    lookup_field = 'uid'
-
-
-class GameListView(generics.ListAPIView):
-    queryset = Game.objects.all()
-    serializer_class = GameSerializer
-    lookup_field = 'uid'
-
-
-class GameMovesView(generics.RetrieveAPIView):
-    queryset = Game.objects.all()
-    serializer_class = GameMovesSerializer
-    lookup_field = 'uid'
 
 
 class GameJoinView(generics.UpdateAPIView):
@@ -353,8 +353,13 @@ class GameMoveView(generics.UpdateAPIView):
 
         # 檢查玩家是否是遊戲的一部分
         shogi_players_name = [player.name for player in shogi_game.players]
-        if request.user.username not in shogi_players_name:
+        req_player = request.user.username
+        if req_player not in shogi_players_name:
             return Response({'detail': 'You are not a player of this game.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        # 檢查執行走步時，request user 是不是當前的 player
+        if req_player != shogi_game.current_player.name:
+            return Response({'detail': 'This is not your turn!'}, status=status.HTTP_401_UNAUTHORIZED)
 
         # 執行棋步，並更新遊戲狀態，如果例外會回傳 400
         try:
