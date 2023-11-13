@@ -40,7 +40,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('reset/', views.reset_session, name='reset_session'),
     path('game/', views.game_board, name='game_board'),
-    path('index/', views.index, name='index'),
+    path('', views.index, name='index'),
     path('login/', views.login, name='login'),
     path('logout/', views.logout, name='logout'),
     path('game/<uuid:uid>/', views.game_socket, name='game_socket'),

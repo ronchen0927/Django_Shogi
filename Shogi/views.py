@@ -34,7 +34,7 @@ def login(request):
 
         if user:
             auth.login(request, user)
-            return redirect('/index/')
+            return redirect('/')
         else:
             message = "Login failed!"
 
@@ -43,7 +43,7 @@ def login(request):
 
 def logout(request):
     auth.logout(request)
-    return redirect("/index/")
+    return redirect("/")
 
 
 def game_socket(request, uid):
