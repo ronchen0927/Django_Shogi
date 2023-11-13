@@ -47,6 +47,11 @@
                     console.log('遊戲創建成功! ID: ' + data.uid);
                     let text = '遊戲創建成功! ID: ' + data.uid;
                     $('#create-game-success').append(text);
+                    
+                    // 2秒後跳轉頁面
+                    setTimeout(function() {
+                        window.location.href = '/';
+                    }, 2000);
                 },
                 error: function(error) {
                     // 檢查 responseJSON 是否存在
