@@ -166,9 +166,9 @@ class ShogiBoard:
                 raise Exception("Can't drop to the position!")
             
             if player.team == 1:
-                obj_piece = self.PIECES[piece_name.upper()](piece_name.lower(), 1)
+                obj_piece = self.PIECES[piece_name.upper()](piece_name.lower(), player.team)
             else:
-                obj_piece = self.PIECES[piece_name.upper()](piece_name.upper(), -1)
+                obj_piece = self.PIECES[piece_name.upper()](piece_name.upper(), player.team)
 
             player.drop(piece_name)
             self.board[dst_r][dst_c] = obj_piece
@@ -197,9 +197,9 @@ class ShogiBoard:
             
             # 4. 打步詰規則
             if player.team == 1:
-                obj_piece = self.PIECES[piece_name.upper()](piece_name.lower(), 1)
+                obj_piece = self.PIECES[piece_name.upper()](piece_name.lower(), player.team)
             else:
-                obj_piece = self.PIECES[piece_name.upper()](piece_name.upper(), -1)
+                obj_piece = self.PIECES[piece_name.upper()](piece_name.upper(), player.team)
 
             board[drop_r][drop_c] = obj_piece
             if self.is_in_check(player) and len(self.get_all_evade_moves(player)) == 0:
