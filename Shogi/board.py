@@ -17,10 +17,8 @@ class ShogiBoard:
     OUR_P_DROP_FORBIDDEN_ZONE = 0
     OPPONENT_P_DROP_FORBIDDEN_ZONE = 8
 
-    OUR_PIECES_NAME = ['r', 'b', 'g', 's', 'n', 'l', 'p',
-                       '+r', '+b', '+g', '+s', '+n', '+l', '+p']
-    OPPONENT_PIECES_NAME = ['R', 'B', 'G', 'S', 'N', 'L', 'P',
-                         '+R', '+B', '+G', '+S', '+N', '+L', '+P']
+    OUR_PIECES_NAME = ['k', 'r', 'b', 'g', 's', 'n', 'l', 'p', '+r', '+b', '+s', '+n', '+l', '+p']
+    OPPONENT_PIECES_NAME = ['K', 'R', 'B', 'G', 'S', 'N', 'L', 'P', '+R', '+B', '+S', '+N', '+L', '+P']
     
     PAWN_PIECE_NAME = ['p', 'P']
     KINGHT_LANCE_PIECE_NAME = ['n', 'l', 'N', 'L']
@@ -166,9 +164,9 @@ class ShogiBoard:
                 raise Exception("Can't drop to the position!")
             
             if player.team == 1:
-                obj_piece = self.PIECES[piece_name.upper()](piece_name.lower(), player.team)
+                obj_piece = self.PIECES[piece_name.upper()](piece_name, player.team)
             else:
-                obj_piece = self.PIECES[piece_name.upper()](piece_name.upper(), player.team)
+                obj_piece = self.PIECES[piece_name.upper()](piece_name, player.team)
 
             player.drop(piece_name)
             self.board[dst_r][dst_c] = obj_piece
@@ -197,9 +195,9 @@ class ShogiBoard:
             
             # 4. 打步詰規則
             if player.team == 1:
-                obj_piece = self.PIECES[piece_name.upper()](piece_name.lower(), player.team)
+                obj_piece = self.PIECES[piece_name.upper()](piece_name, player.team)
             else:
-                obj_piece = self.PIECES[piece_name.upper()](piece_name.upper(), player.team)
+                obj_piece = self.PIECES[piece_name.upper()](piece_name, player.team)
 
             board[drop_r][drop_c] = obj_piece
             if self.is_in_check(player) and len(self.get_all_evade_moves(player)) == 0:
@@ -214,16 +212,15 @@ class ShogiBoard:
         檢查王將/玉將是否被將軍
         '''
         king_pos = self.our_king_pos if player.team == 1 else self.opponent_king_pos
-        all_opponent_pieces = self.OPPONENT_PIECES_NAME if player.team == 1 else self.OUR_PIECES_NAME
+        all_opponent_pieces_name = self.OPPONENT_PIECES_NAME if player.team == 1 else self.OUR_PIECES_NAME
         all_opponent_moves = []
         board = copy.deepcopy(self.board)
 
         for r, row in enumerate(board):
             for c, cell in enumerate(row):
-                if cell in all_opponent_pieces:
-                    obj_cell = self.PIECES[cell.upper()](cell, player.team)
-                    valid_moves = obj_cell.get_valid_moves((r, c), board)
-                    all_opponent_moves.append(valid_moves)
+                if cell and (cell.name in all_opponent_pieces_name):
+                    valid_moves = cell.get_valid_moves((r, c), board)
+                    all_opponent_moves.extend(valid_moves)
 
         return king_pos in all_opponent_moves
     
@@ -233,16 +230,15 @@ class ShogiBoard:
         王將/玉將不會被將軍的移動
         '''
         king_pos = self.our_king_pos if player.team == 1 else self.opponent_king_pos
-        all_opponent_pieces = self.OPPONENT_PIECES_NAME if player.team == 1 else self.OUR_PIECES_NAME
+        all_opponent_pieces_name = self.OPPONENT_PIECES_NAME if player.team == 1 else self.OUR_PIECES_NAME
         all_opponent_moves = []
         board = copy.deepcopy(self.board)
 
         for r, row in enumerate(board):
             for c, cell in enumerate(row):
-                if cell in all_opponent_pieces:
-                    obj_cell = self.PIECES[cell.upper()](cell, player.team)
-                    valid_moves = obj_cell.get_valid_moves((r, c), self.board)
-                    all_opponent_moves.append(valid_moves)
+                if cell and (cell.name in all_opponent_pieces_name):
+                    valid_moves = cell.get_valid_moves((r, c), self.board)
+                    all_opponent_moves.extend(valid_moves)
         
         king_r, king_c = king_pos
         king = self.board[king_r][king_c]
@@ -258,15 +254,14 @@ class ShogiBoard:
         '''
         piece_evade_moves = []
         all_our_moves = []
-        all_our_pieces = self.OUR_PIECES_NAME if player.team == 1 else self.OPPONENT_PIECES_NAME
+        all_our_pieces_name = self.OUR_PIECES_NAME if player.team == 1 else self.OPPONENT_PIECES_NAME
         board = copy.deepcopy(self.board)
 
         for src_r, row in enumerate(board):
             for src_c, cell in enumerate(row):
-                if cell in all_our_pieces:
-                    obj_cell = self.PIECES[cell.upper()](cell, player.team)
-                    valid_moves = obj_cell.get_valid_moves((src_r, src_c), board)
-                    all_our_moves.append(valid_moves)
+                if cell and (cell.name in all_our_pieces_name):
+                    valid_moves = cell.get_valid_moves((src_r, src_c), board)
+                    all_our_moves.extend(valid_moves)
 
         for move in all_our_moves:
             src_r, src_c, _ = parse_string_to_pos(move[:2])
