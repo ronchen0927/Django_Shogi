@@ -11,11 +11,11 @@ class ShogiBoard:
     OUR_PROMOTION_ZONE = [0, 1, 2]
     OPPONENT_PROMOTION_ZONE = [6, 7, 8]
     
-    OUR_NL_DROP_FORBIDDEN_ZONE = [7, 8]
-    OPPONENT_NL_DROP_FORBIDDEN_ZONE = [0, 1]
+    OUR_NL_DROP_FORBIDDEN_ZONE = [0, 1]
+    OPPONENT_NL_DROP_FORBIDDEN_ZONE = [7, 8]
 
-    OUR_P_DROP_FORBIDDEN_ZONE = 8
-    OPPONENT_P_DROP_FORBIDDEN_ZONE = 0
+    OUR_P_DROP_FORBIDDEN_ZONE = 0
+    OPPONENT_P_DROP_FORBIDDEN_ZONE = 8
 
     OUR_PIECES_NAME = ['r', 'b', 'g', 's', 'n', 'l', 'p',
                        '+r', '+b', '+g', '+s', '+n', '+l', '+p']
@@ -166,7 +166,7 @@ class ShogiBoard:
                 raise Exception("Can't drop to the position!")
             
             if player.team == 1:
-                obj_piece = self.PIECES[piece_name](piece_name.lower(), 1)
+                obj_piece = self.PIECES[piece_name.upper()](piece_name.lower(), 1)
             else:
                 obj_piece = self.PIECES[piece_name.upper()](piece_name.upper(), -1)
 
@@ -221,7 +221,8 @@ class ShogiBoard:
         for r, row in enumerate(board):
             for c, cell in enumerate(row):
                 if cell in all_opponent_pieces:
-                    valid_moves = cell.get_valid_moves((r, c), board)
+                    obj_cell = self.PIECES[cell.upper()](cell, player.team)
+                    valid_moves = obj_cell.get_valid_moves((r, c), board)
                     all_opponent_moves.append(valid_moves)
 
         return king_pos in all_opponent_moves
@@ -239,7 +240,8 @@ class ShogiBoard:
         for r, row in enumerate(board):
             for c, cell in enumerate(row):
                 if cell in all_opponent_pieces:
-                    valid_moves = cell.get_valid_moves((r, c), self.board)
+                    obj_cell = self.PIECES[cell.upper()](cell, player.team)
+                    valid_moves = obj_cell.get_valid_moves((r, c), self.board)
                     all_opponent_moves.append(valid_moves)
         
         king_r, king_c = king_pos
@@ -262,7 +264,8 @@ class ShogiBoard:
         for src_r, row in enumerate(board):
             for src_c, cell in enumerate(row):
                 if cell in all_our_pieces:
-                    valid_moves = cell.get_valid_moves((src_r, src_c), board)
+                    obj_cell = self.PIECES[cell.upper()](cell, player.team)
+                    valid_moves = obj_cell.get_valid_moves((src_r, src_c), board)
                     all_our_moves.append(valid_moves)
 
         for move in all_our_moves:
