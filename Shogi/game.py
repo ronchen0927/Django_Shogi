@@ -22,13 +22,13 @@ class ShogiGame:
 
         # 先檢查我方是否被將死
         is_our_king_check = self.board.is_in_check(our_player)
-        our_all_evade_moves = self.board.get_all_evade_moves(our_player)
+        our_all_evade_moves = self.board.get_all_king_evade_moves(our_player)
         if 'k' in opponent_player.captured or (is_our_king_check and len(our_all_evade_moves) == 0):
             result = opponent_player.team
 
         # 再檢查敵方是否被將死
         is_opponent_king_check = self.board.is_in_check(opponent_player)
-        opponent_all_evade_moves = self.board.get_all_evade_moves(opponent_player)
+        opponent_all_evade_moves = self.board.get_all_king_evade_moves(opponent_player)
         if 'K' in our_player.captured or (is_opponent_king_check and len(opponent_all_evade_moves) == 0):
             result = our_player.team
 

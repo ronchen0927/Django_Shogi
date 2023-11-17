@@ -1,4 +1,4 @@
-from typing import Tuple, List
+from typing import Tuple, List, Set
 from .utils import parse_string_to_pos, parse_drop_to_string
 from .piece import *
 from .player import ShogiPlayer
@@ -32,7 +32,7 @@ class ShogiBoard:
         self.opponent_king_pos = (0, 4)
         self.init_board()
 
-    
+
     @property
     def opponent_player(self):
         return self._opponent_player
@@ -101,6 +101,10 @@ class ShogiBoard:
         self.board[7][7] = Rook('r', 1)
         self.board[8] = [Lance('l', 1), Knight('n', 1), SGeneral('s', 1), GGeneral('g', 1), King('k', 1), GGeneral('g', 1), SGeneral('s', 1), Knight('n', 1), Lance('l', 1)]
 
+    
+    def insert_board(self, customization_board):
+        self.board = customization_board
+
 
     def _has_piece(self, board, position: Tuple[int, int]) -> bool:
         if not is_in_board(position):
@@ -164,9 +168,9 @@ class ShogiBoard:
                 raise Exception("Can't drop to the position!")
             
             if player.team == 1:
-                obj_piece = self.PIECES[piece_name.upper()](piece_name, player.team)
+                obj_piece = self.PIECES[piece_name.upper()](piece_name.lower(), player.team)
             else:
-                obj_piece = self.PIECES[piece_name.upper()](piece_name, player.team)
+                obj_piece = self.PIECES[piece_name.upper()](piece_name.upper(), player.team)
 
             player.drop(piece_name)
             self.board[dst_r][dst_c] = obj_piece
@@ -193,16 +197,18 @@ class ShogiBoard:
             if (player.team == 1 and any(str(board[rol][drop_c]) == 'p' for rol in range(9))) or (player.team == -1 and any(str(board[rol][drop_c]) == 'P' for rol in range(9))):
                 return False
             
-            # 4. 打步詰規則
-            if player.team == 1:
-                obj_piece = self.PIECES[piece_name.upper()](piece_name, player.team)
-            else:
-                obj_piece = self.PIECES[piece_name.upper()](piece_name, player.team)
+            # 4. 打步詰規則 (先不檢查，發生機率低)
+            # if player.team == 1:
+            #     obj_piece = self.PIECES[piece_name.upper()](piece_name.lower(), player.team)
+            # else:
+            #     obj_piece = self.PIECES[piece_name.upper()](piece_name.upper(), player.team)
 
-            board[drop_r][drop_c] = obj_piece
-            if self.is_in_check(player) and len(self.get_all_evade_moves(player)) == 0:
-                return False
-            board[drop_r][drop_c] = None
+            # board[drop_r][drop_c] = obj_piece
+
+            # if self.is_in_check(player) and len(self.get_all_king_evade_moves(player)) == 0:
+            #     return False
+            
+            # board[drop_r][drop_c] = None
 
         return True
 
@@ -222,10 +228,17 @@ class ShogiBoard:
                     valid_moves = cell.get_valid_moves((r, c), board)
                     all_opponent_moves.extend(valid_moves)
 
-        return king_pos in all_opponent_moves
+        king_r, king_c = king_pos
+        king = self.board[king_r][king_c]
+
+        king_valid_moves = king.get_valid_moves((king_r, king_c), self.board)
+        king_src_pos = king_valid_moves[-1][:2]  # 隨機取一個移動步，然後取前半段，即為當前位置(src)的 notation
+        all_opponent_dst = [move[2:4] for move in all_opponent_moves]  # 取 dst 且不取升變步的 notation
+
+        return king_src_pos in set(all_opponent_dst)
     
 
-    def _get_king_evade_moves(self, player: ShogiPlayer) -> List[str]:
+    def _get_king_evade_moves(self, player: ShogiPlayer) -> Set[str]:
         '''
         王將/玉將不會被將軍的移動
         '''
@@ -237,18 +250,23 @@ class ShogiBoard:
         for r, row in enumerate(board):
             for c, cell in enumerate(row):
                 if cell and (cell.name in all_opponent_pieces_name):
-                    valid_moves = cell.get_valid_moves((r, c), self.board)
+                    valid_moves = cell.get_valid_moves((r, c), board)
                     all_opponent_moves.extend(valid_moves)
         
         king_r, king_c = king_pos
         king = self.board[king_r][king_c]
+
         king_valid_moves = king.get_valid_moves((king_r, king_c), self.board)
-        
-        king_safe_moves = list(set(king_valid_moves) - set(all_opponent_moves))
-        return king_safe_moves
+        king_src_pos = king_valid_moves[-1][:2]  # 隨機取一個移動步，然後取前半段，即為當前位置(src)的 notation
+        all_king_dst = [king_src_pos] + [move[2:] for move in king_valid_moves]
+        all_opponent_dst = [move[2:4] for move in all_opponent_moves]  # 取所有 dst 且不取升變步的 notation
+        king_safe_pos = list(set(all_king_dst) - set(all_opponent_dst))
+
+        king_evade_moves = set([king_src_pos + king_dst_pos for king_dst_pos in king_safe_pos])  # concate back to king evade move
+        return king_evade_moves
 
 
-    def _get_piece_evade_moves(self, player: ShogiPlayer) -> List[str]:
+    def _get_piece_evade_moves(self, player: ShogiPlayer) -> Set[str]:
         '''
         檢查一般棋子移動後是否仍然被將軍，如果王將不再被將軍，則該移動是一個有效的閃避走步
         '''
@@ -269,9 +287,9 @@ class ShogiBoard:
 
             # 先移動看看
             piece = board[src_r][src_c]
-            board[src_r][src_c] = None
             if is_promoted:
                 piece.promoted = True
+            board[src_r][src_c] = None
             board[dst_r][dst_c] = piece
 
             if not self.is_in_check(player):  # 檢查移動後王將是否仍然被將軍
@@ -279,15 +297,15 @@ class ShogiBoard:
 
             # 檢查後盤面需復原
             piece = board[dst_r][dst_c]
-            board[dst_r][dst_c] = None
             if is_promoted:
                 piece.promoted = False
+            board[dst_r][dst_c] = None
             board[src_r][src_c] = piece
 
-        return piece_evade_moves
+        return set(piece_evade_moves)
 
 
-    def _get_drop_evade_moves(self, player: ShogiPlayer) -> List[str]:
+    def _get_drop_evade_moves(self, player: ShogiPlayer) -> Set[str]:
         all_evade_drops = []
         all_our_captured = player.captured
         all_empty_cells = self._get_all_empty_cells()
@@ -299,7 +317,7 @@ class ShogiBoard:
 
                 # 先打入看看
                 if self._can_drop_piece(piece_name, drop_pos, player):
-                    board[dst_r][dst_c] = piece_name
+                    board[dst_r][dst_c] = self.PIECES[piece_name.upper()](piece_name, player.team)
 
                 if not self.is_in_check(player):  # 檢查移動後王將是否仍然被將軍
                     move = parse_drop_to_string(piece_name, drop_pos)
@@ -308,7 +326,7 @@ class ShogiBoard:
                 # 檢查後盤面需復原
                 board[dst_r][dst_c] = None
 
-        return all_evade_drops
+        return set(all_evade_drops)
     
 
     def _get_all_empty_cells(self) -> List[Tuple[int, int]]:
@@ -322,9 +340,9 @@ class ShogiBoard:
         return all_empty_cells
 
 
-    def get_all_evade_moves(self, player: ShogiPlayer):
-        all_evade_moves = self._get_king_evade_moves(player)
-        all_evade_moves.extend(self._get_piece_evade_moves(player))
-        all_evade_moves.extend(self._get_drop_evade_moves(player))
+    def get_all_king_evade_moves(self, player: ShogiPlayer):
+        king_evade_moves = self._get_king_evade_moves(player)
+        king_evade_moves &= self._get_piece_evade_moves(player)
+        king_evade_moves |= self._get_drop_evade_moves(player)
 
-        return all_evade_moves
+        return king_evade_moves
