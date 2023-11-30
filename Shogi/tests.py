@@ -126,15 +126,14 @@ class GamesMoveViewTest(TestCase):
             "move": move
         }
         
-        # 使用 patch 來 mock async_to_sync 呼叫
+        # Use "unittest mock patch" to mock "async_to_sync" call
         with patch('Shogi.views.async_to_sync') as mock_async:
-            # 進行你的測試呼叫
             response = self.client.put(url, put_data, content_type='application/json')
 
-            # 檢查響應狀態和其他需要驗證的內容
+            # Check response status and json
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.json()['game_id'], str(self.game.uid))
             self.assertEqual(response.json()['move'], move)
 
-            # 也可以驗證 async_to_sync 是否被呼叫
+            # Verify whether async_to_sync was called
             mock_async.assert_called()
