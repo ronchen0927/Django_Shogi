@@ -88,6 +88,9 @@ class ShogiBoard:
 
         Our Captures:
         Opponent Captures:
+
+        我方玩家: foo
+        敵方玩家: bar
         '''
         # Opponent pieces (team = -1)
         self.board[0] = [Lance('L', -1), Knight('N', -1), SGeneral('S', -1), GGeneral('G', -1), King('K', -1), GGeneral('G', -1), SGeneral('S', -1), Knight('N', -1), Lance('L', -1)]
