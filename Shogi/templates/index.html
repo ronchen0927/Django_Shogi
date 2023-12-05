@@ -110,13 +110,17 @@
 
                     data.forEach(function(game) {
                         let listItem = $('<li>').text('Game ID: ' + game.uid);  // 遊戲列表
-                        let space = $('<span>').html('&nbsp;&nbsp;&nbsp;');  // 創建兩個空白元素
+                        let space = $('<span>').html('&nbsp;&nbsp;&nbsp;');
                         let joinGameButton = $('<button>').text('加入遊戲').on('click', {game_uid: game.uid}, joinGame);
                         let continueGameButton = $('<button>').text('繼續遊戲').on('click', function() {
                             window.location.href = '/game/' + game.uid + '/';
                         })
+                        let gameFinishMessage = '';
+                        if(game.status == 'Finished') {
+                            gameFinishMessage = "此遊戲已結束"
+                        }
 
-                        listItem.append(space, joinGameButton, continueGameButton);
+                        listItem.append(space, joinGameButton, continueGameButton, space, gameFinishMessage);
 
                         // 將列表項添加到遊戲列表中
                         $('#game-list').append(listItem);
