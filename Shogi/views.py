@@ -57,17 +57,16 @@ def game_socket(request, uid):
         return HttpResponse('The game is not found.', status=status.HTTP_404_NOT_FOUND)
     
     if game.status == GameStatus.FINISHED:
-        return HttpResponse('The game is over.', status=status.HTTP_400_BAD_REQUEST)
+        return HttpResponse('The game is over.', status=status.HTTP_200_OK)
     
     shogi_game = pickle.loads(game.binary_game)
     shogi_game.current_player = shogi_game.players[shogi_game.game_round % 2]
 
     # 檢查玩家是否是遊戲的一部分
-    # TODO: 點選「加入遊戲」後直接加入新玩家
     try:
         shogi_players_name = [player.name for player in shogi_game.players]
     except:
-        return HttpResponse('This game has not yet been joined by another player.', status=status.HTTP_400_BAD_REQUEST)
+        return HttpResponse('This game has not yet been joined by another player.', status=status.HTTP_403_FORBIDDEN)
     
     if request.user.username not in shogi_players_name:
         return HttpResponse('You are not a player of this game', status=status.HTTP_403_FORBIDDEN)
@@ -204,10 +203,13 @@ class LoginView(views.APIView):
         )
 
         if user:
-            auth.login(request, user)
-            return Response({"datail": "Login successful!"}, status=status.HTTP_200_OK)
+            try:
+                auth.login(request, user)
+                return Response({"datail": "Login successful!"}, status=status.HTTP_200_OK)
+            except:
+                return Response({"datail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
         
-        return Response({"datail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response(status=status.HTTP_400_BAD_REQUEST)
     
 
 class LogoutView(views.APIView):
@@ -215,15 +217,20 @@ class LogoutView(views.APIView):
     
     def get(self, request):
         auth.logout(request)
-        return Response({"detail": "Logged out successfully!"})
+        return Response({"detail": "Logged out successfully!"}, status=status.HTTP_200_OK)
     
 
 class CheckLoginStatusView(views.APIView):
     def get(self, request, format=None):
         user = request.user
-        if user and user.is_authenticated:
-            return Response({'status': 'Logged in', 'user': user.username})
-        return Response({'status': 'Not logged in'}, status=status.HTTP_401_UNAUTHORIZED)
+        if user:
+            if user.is_authenticated:
+                return Response({'status': 'Logged in', 'user': user.username}, status=status.HTTP_200_OK)
+            else:
+                return Response(status=status.HTTP_401_UNAUTHORIZED)
+        else:
+            return Response(status.HTTP_400_BAD_REQUEST)
+        
     
 
 class PlayerView(generics.RetrieveAPIView):
@@ -297,13 +304,13 @@ class GameJoinView(generics.UpdateAPIView):
 
         # 檢查遊戲是否已有對手
         if game.opponent_player:
-            return Response({'detail': 'Game has already an opponent.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'Game has already an opponent.'}, status=status.HTTP_403_FORBIDDEN)
         
         player, _ = Player.objects.get_or_create(user=request.user)
 
         # 檢查我方與敵方玩家是否為同一人
         if player == game.our_player:
-            return Response({'detail': 'our_player isn\'t equal to opponent_player.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'our_player isn\'t equal to opponent_player.'}, status=status.HTTP_403_FORBIDDEN)
         game.opponent_player = player
 
         shogi_game = pickle.loads(game.binary_game)
@@ -345,7 +352,7 @@ class GameMoveView(generics.UpdateAPIView):
             return Response({'detail': 'Game not found.'}, status=status.HTTP_404_NOT_FOUND)
         
         if game.status == GameStatus.FINISHED:
-            return Response({'detail': 'The game is over.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'The game is over.'}, status=status.HTTP_200_OK)
         
         shogi_game = pickle.loads(game.binary_game)
         shogi_game.current_player = shogi_game.players[shogi_game.game_round % 2]
@@ -359,7 +366,7 @@ class GameMoveView(generics.UpdateAPIView):
         
         # 檢查執行走步時，request user 是不是當前的 player
         if req_player != shogi_game.current_player.name:
-            return Response({'detail': 'This is not your turn!'}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({'detail': 'This is not your turn!'}, status=status.HTTP_403_FORBIDDEN)
 
         # 執行棋步，並更新遊戲狀態，如果例外會回傳 400
         try:
