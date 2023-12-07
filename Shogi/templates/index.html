@@ -41,6 +41,7 @@
                 },
                 success: function(data) {
                     // 清空 text 以及 list（如果有）
+                    $('#game-uid-create').hide();
                     $('#create-game-success').empty();
                     $('#game-list').empty();
 
@@ -111,15 +112,18 @@
                     data.forEach(function(game) {
                         let listItem = $('<li>').text('Game ID: ' + game.uid);  // 遊戲列表
                         let space1 = $('<span>').html('&nbsp;&nbsp;&nbsp;');
-                        let joinGameButton = $('<button>').text('加入遊戲').on('click', {game_uid: game.uid}, joinGame);
-                        let continueGameButton = $('<button>').text('繼續遊戲').on('click', function() {
-                            window.location.href = '/game/' + game.uid + '/';
-                        })
-                        
+                        let joinGameButton = '';
+                        let continueGameButton = '';
                         let space2 = $('<span>').html('&nbsp;&nbsp;&nbsp;');
                         let gameFinishMessage = '';
+                        
                         if(game.status == 'Finished') {
                             gameFinishMessage = "此遊戲已結束"
+                        } else {
+                            joinGameButton = $('<button>').text('加入遊戲').on('click', {game_uid: game.uid}, joinGame);
+                            continueGameButton = $('<button>').text('繼續遊戲').on('click', function() {
+                                window.location.href = '/game/' + game.uid + '/';
+                            })
                         }
 
                         listItem.append(space1, joinGameButton, continueGameButton, space2, gameFinishMessage);
