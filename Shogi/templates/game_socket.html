@@ -12,7 +12,7 @@
     <br>
     <input id="game-move-input" type="text" size="25"><br>
     <input id="game-move-submit" type="button" value="發送走步">
-    <button onclick="history.go(-1)">回到遊戲首頁</button>
+    <a href="{% url 'index' %}">回到遊戲首頁</a>
     {{ game_uid|json_script:"game-uid" }}
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -21,9 +21,9 @@
         const gameUID = JSON.parse(document.getElementById('game-uid').textContent);
         
         const gameSocket = new WebSocket(
-            'ws://'
+            'wss://'
             + window.location.host
-            + '/ws/game/'
+            + '/wss/game/'
             + gameUID
             + '/'
         );
